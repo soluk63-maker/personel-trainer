@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Kişisel Antrenör</title>
+<meta name="theme-color" content="#14161a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Antrenör" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" href="icon-192.png" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+  :root {
+    --bg: #14161a; --surface: #1c2026; --surface-alt: #232833; --border: #2b303a;
+    --text: #ecedef; --text-muted: #8f95a1; --accent: #e8622c; --accent-soft: rgba(232,98,44,0.14);
+    --protein: #5c9f7d; --carb: #d9a441; --fat: #6e8cb0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
+    -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  #app { display:flex; flex-direction:column; min-height:100vh; max-width:560px; margin:0 auto; }
+  .hdr { padding:calc(16px + env(safe-area-inset-top)) 20px 14px; border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,var(--surface),var(--bg)); position:sticky; top:0; z-index:5; }
+  .eyebrow { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 4px; }
+  .title { font-family:'Oswald',sans-serif; font-weight:600; font-size:22px; margin:0; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; }
+  .gear { background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; }
+  .gear:hover { color:var(--accent); }
+  .body { flex:1; overflow-y:auto; padding:18px 20px 24px; position:relative; }
+  .navbar { position:sticky; bottom:0; display:flex; border-top:1px solid var(--border); background:var(--surface);
+    padding-bottom: env(safe-area-inset-bottom); z-index:5; }
+  .navbtn { flex:1; background:transparent; border:none; color:var(--text-muted); padding:11px 4px 9px;
+    display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .navbtn .ic { font-size:18px; line-height:1; }
+  .navbtn.active { color:var(--accent); }
+  .datebar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .datebar-label { font-family:'Oswald',sans-serif; font-size:15px; text-transform:capitalize; }
+  .iconbtn { background:var(--surface-alt); border:1px solid var(--border); color:var(--text); width:32px; height:32px;
+    border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; }
+  .iconbtn:disabled { opacity:.35; }
+  .totals { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
+  .total-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 6px; text-align:center; }
+  .total-val { font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700; }
+  .total-label { font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .card-title { font-family:'Oswald',sans-serif; font-size:14px; text-transform:uppercase; letter-spacing:.03em; margin:0 0 10px;
+    display:flex; justify-content:space-between; align-items:center; }
+  .log-line { display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .log-line:last-child { border-bottom:none; }
+  .log-time { font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-muted); width:38px; flex-shrink:0; padding-top:2px; }
+  .log-dot { width:8px; height:8px; border-radius:50%; margin-top:6px; flex-shrink:0; }
+  .log-body { flex:1; min-width:0; }
+  .log-title { font-weight:600; font-size:13.5px; }
+  .log-sub { font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+  .log-del { background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; flex-shrink:0; font-size:14px; }
+  .empty { text-align:center; color:var(--text-muted); padding:32px 10px; font-size:12.5px; }
+  .upload-zone { border:1.5px dashed var(--border); border-radius:12px; padding:26px 16px; text-align:center; color:var(--text-muted); cursor:pointer; display:block; }
+  .upload-zone .ic { font-size:26px; display:block; margin-bottom:8px; }
+  .preview-img { width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin-bottom:12px; }
+  .btn { background:var(--accent); color:#14161a; border:none; border-radius:9px; padding:10px 16px; font-weight:600;
+    font-size:13px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; width:auto; }
+  .btn:disabled { opacity:.5; }
+  .btn-outline { background:transparent; color:var(--text); border:1px solid var(--border); }
+  .btn-block { width:100%; }
+  .btn-sm { padding:6px 10px; font-size:11.5px; }
+  .row { display:flex; gap:10px; }
+  .row > * { flex:1; }
+  .macro-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:12px 0; }
+  .macro-item { background:var(--surface-alt); border-radius:8px; padding:8px 6px; text-align:center; }
+  .macro-val { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13.5px; }
+  .macro-label { font-size:9.5px; color:var(--text-muted); margin-top:2px; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:11.5px; color:var(--text-muted); margin-bottom:5px; }
+  .field input, .field select, .field textarea { width:100%; background:var(--surface-alt); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); padding:9px 10px; font-size:13px; font-family:'Inter',sans-serif; }
+  .field textarea { resize:vertical; min-height:56px; }
+  .day-card { margin-bottom:10px; }
+  .day-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; gap:8px; }
+  .day-name { font-family:'Oswald',sans-serif; font-size:13.5px; text-transform:uppercase; }
+  .day-focus { font-size:10.5px; color:var(--text-muted); }
+  .ex-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .ex-row:last-child { border-bottom:none; }
+  .ex-sets { font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:11.5px; white-space:nowrap; margin-left:8px; }
+  .chat-msgs { display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+  .bubble { padding:10px 13px; border-radius:12px; font-size:13px; line-height:1.5; max-width:86%; white-space:pre-wrap; }
+  .bubble.user { background:var(--accent-soft); border:1px solid rgba(232,98,44,.35); align-self:flex-end; }
+  .bubble.assistant { background:var(--surface-alt); border:1px solid var(--border); align-self:flex-start; }
+  .chat-input-row { display:flex; gap:8px; position:sticky; bottom:0; background:var(--bg); padding-top:4px; }
+  .chat-input-row textarea { flex:1; background:var(--surface-alt); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:10px 12px; font-size:13px; font-family:'Inter',sans-serif; resize:none; min-height:42px; max-height:100px; }
+  .toast { position:fixed; bottom:78px; left:50%; transform:translateX(-50%); background:var(--surface-alt);
+    border:1px solid var(--accent); color:var(--text); padding:8px 16px; border-radius:20px; font-size:12px; z-index:50; }
+  .error-box { background:rgba(232,98,44,.1); border:1px solid var(--accent); color:var(--text); padding:10px 12px;
+    border-radius:9px; font-size:12px; margin-bottom:12px; }
+  .spin { display:inline-block; animation: spin .9s linear infinite; }
+  @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+  .settings-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:flex-end; justify-content:center; z-index:100; }
+  .settings-sheet { background:var(--surface); border:1px solid var(--border); border-radius:16px 16px 0 0; padding:20px;
+    width:100%; max-width:560px; padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
+  .muted-link { color:var(--text-muted); font-size:11.5px; text-decoration:underline; background:none; border:none; cursor:pointer; padding:0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ---------- yardımcılar ----------
+const todayStr = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const addDays = (s,n) => { const d=new Date(s+'T12:00:00'); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const formatDateTR = (s) => new Date(s+'T12:00:00').toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});
+const nowTime = () => { const d=new Date(); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+const uid = () => Math.random().toString(36).slice(2,10);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const stripFence = (t) => t.replace(/```json\s*/gi,'').replace(/```/g,'').trim();
+
+function lsGetJSON(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
+function lsSetJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) { console.error(e); } }
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = () => reject(new Error('Dosya okunamadı'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function callClaude({ system, messages, wantJson }) {
+  if (!S.apiKey) throw new Error('API anahtarı girilmemiş');
+  const body = { model: 'claude-sonnet-4-6', max_tokens: 1000, messages };
+  if (system) body.system = system;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': S.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => null);
+    throw new Error(errData?.error?.message || 'API isteği başarısız oldu');
+  }
+  const data = await res.json();
+  const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+  if (wantJson) return JSON.parse(stripFence(text));
+  return text;
+}
+
+// ---------- global state ----------
+const S = {
+  tab: 'gunluk',
+  date: todayStr(),
+  apiKey: localStorage.getItem('pt_apiKey') || '',
+  entries: [],
+  program: lsGetJSON('pt_program', null),
+  chat: lsGetJSON('pt_chat', []),
+  showSettings: false,
+  toast: null,
+  ui: {
+    preview: null, file: null, analysis: null, busy: false, error: null, manualOpen: false,
+    manualForm: { isim:'', kalori:'', protein_g:'', karbonhidrat_g:'', yag_g:'' },
+    programFormOpen: true, programBusy: false, programError: null,
+    programForm: { hedef:'Kas kazanma', gun:'4', ekipman:'Salon (tam ekipman)', seviye:'Orta' },
+    chatInput: '', chatBusy: false, chatError: null,
+  }
+};
+if (S.program) S.ui.programFormOpen = false;
+
+function loadEntries() { S.entries = lsGetJSON('pt_log_' + S.date, []); }
+loadEntries();
+
+function persistEntries() { lsSetJSON('pt_log_' + S.date, S.entries); }
+function addEntry(e) {
+  S.entries = [...S.entries, { id: uid(), time: nowTime(), ...e }].sort((a,b) => a.time.localeCompare(b.time));
+  persistEntries();
+}
+function removeEntry(id) { S.entries = S.entries.filter(e => e.id !== id); persistEntries(); render(); }
+
+function showToast(msg) { S.toast = msg; render(); setTimeout(() => { S.toast = null; render(); }, 2200); }
+
+function totalsFor(entries) {
+  return entries.filter(e => e.type === 'meal').reduce((acc, e) => ({
+    kalori: acc.kalori + (e.kalori||0), protein: acc.protein + (e.protein_g||0),
+    karbonhidrat: acc.karbonhidrat + (e.karbonhidrat_g||0), yag: acc.yag + (e.yag_g||0),
+  }), { kalori:0, protein:0, karbonhidrat:0, yag:0 });
+}
+
+// ---------- render ----------
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="hdr">
+      <p class="eyebrow">Kişisel Koç · ${esc(formatDateTR(S.date))}</p>
+      <h1 class="title">Antrenman &amp; Beslenme
+        <button class="gear" onclick="openSettings()">⚙</button>
+      </h1>
+    </div>
+    <div class="body">
+      ${tabContent()}
+      ${S.toast ? `<div class="toast">${esc(S.toast)}</div>` : ''}
+    </div>
+    <nav class="navbar">
+      ${navBtn('gunluk','📅','Günlük')}
+      ${navBtn('beslenme','📷','Beslenme')}
+      ${navBtn('antrenman','🏋️','Antrenman')}
+      ${navBtn('koc','💬','Koç')}
+    </nav>
+    ${S.showSettings ? settingsSheet() : ''}
+  `;
+  bindEvents();
+  if (S.tab === 'koc') {
+    const box = document.getElementById('chatMsgs');
+    if (box) box.scrollTop = box.scrollHeight;
+  }
+}
+
+function navBtn(id, icon, label) {
+  return `<button class="navbtn ${S.tab===id?'active':''}" onclick="setTab('${id}')">
+    <span class="ic">${icon}</span>${label}</button>`;
+}
+
+function setTab(t) { S.tab = t; render(); }
+
+function openSettings() { S.showSettings = true; render(); }
+function closeSettings() { S.showSettings = false; render(); }
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  S.apiKey = val;
+  localStorage.setItem('pt_apiKey', val);
+  showToast('Anahtar kaydedildi');
+  closeSettings();
+}
+function clearApiKey() {
+  S.apiKey = '';
+  localStorage.removeItem('pt_apiKey');
+  render();
+}
+
+function settingsSheet() {
+  return `
+  <div class="settings-overlay" onclick="if(event.target===this) closeSettings()">
+    <div class="settings-sheet">
+      <p class="card-title">Ayarlar</p>
+      <div class="field">
+        <label>Anthropic API Anahtarı</label>
+        <input id="apiKeyInput" type="password" placeholder="sk-ant-..." value="${esc(S.apiKey)}" />
+      </div>
+      <p style="font-size:11px;color:var(--text-muted);margin:-4px 0 14px;">
+        Anahtarın sadece bu telefonda, tarayıcının hafızasında saklanır. Hiçbir sunucuya gönderilmez.
+      </p>
+      <div class="row">
+        <button class="btn btn-block" onclick="saveApiKey()">Kaydet</button>
+        <button class="btn btn-outline" onclick="closeSettings()">Kapat</button>
+      </div>
+      ${S.apiKey ? `<div style="margin-top:14px;text-align:center;"><button class="muted-link" onclick="clearApiKey()">Anahtarı sil</button></div>` : ''}
+    </div>
+  </div>`;
+}
+
+function tabContent() {
+  if (S.tab === 'gunluk') return gunlukTab();
+  if (S.tab === 'beslenme') return beslenmeTab();
+  if (S.tab === 'antrenman') return antrenmanTab();
+  if (S.tab === 'koc') return kocTab();
+  return '';
+}
+
+// ---------- GÜNLÜK ----------
+function gunlukTab() {
+  const t = totalsFor(S.entries);
+  return `
+    <div class="datebar">
+      <button class="iconbtn" onclick="changeDate(-1)">‹</button>
+      <span class="datebar-label">${S.date===todayStr() ? 'Bugün' : esc(formatDateTR(S.date))}</span>
+      <button class="iconbtn" onclick="changeDate(1)" ${S.date>=todayStr()?'disabled':''}>›</button>
+    </div>
+    <div class="totals">
+      <div class="total-card"><div class="total-val" style="color:var(--accent)">${Math.round(t.kalori)}</div><div class="total-label">kcal</div></div>
+      <div class="total-card"><div class="total-val" style="color:var(--protein)">${Math.round(t.protein)}g</div><div class="total-label">protein</div></div>
+      <div class="total-card"><div class="total-val" style="color:var(--carb)">${Math.round(t.karbonhidrat)}g</div><div class="total-label">karbon.</div></div>
+      <div class="total-card"><div class="total-val" style="color:var(--fat)">${Math.round(t.yag)}g</div><div class="total-label">yağ</div></div>
+    </div>
+    <div class="card">
+      <p class="card-title">Zaman Akışı</p>
+      ${S.entries.length===0 ? `<div class="empty">Bu gün için henüz kayıt yok. Beslenme veya Antrenman sekmesinden ekleyebilirsin.</div>` :
+        S.entries.map(e => `
+          <div class="log-line">
+            <div class="log-time">${esc(e.time)}</div>
+            <div class="log-dot" style="background:${e.type==='meal'?'var(--accent)':'var(--fat)'}"></div>
+            <div class="log-body">
+              <div class="log-title">${esc(e.title)}</div>
+              <div class="log-sub">${e.type==='meal'
+                ? `${Math.round(e.kalori||0)} kcal · P ${Math.round(e.protein_g||0)}g · K ${Math.round(e.karbonhidrat_g||0)}g · Y ${Math.round(e.yag_g||0)}g`
+                : esc(e.sub||'')}</div>
+            </div>
+            <button class="log-del" onclick="removeEntry('${e.id}')">🗑</button>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+}
+function changeDate(n) { S.date = addDays(S.date, n); loadEntries(); render(); }
+
+// ---------- BESLENME ----------
+function beslenmeTab() {
+  const u = S.ui;
+  return `
+    <div class="card">
+      <p class="card-title">Ne Yedin / İçtin?</p>
+      ${!u.preview ? `
+        <label class="upload-zone">
+          <span class="ic">📷</span>
+          Fotoğraf çek veya galeriden seç
+          <input type="file" accept="image/*" capture="environment" style="display:none" id="foodFileInput" onchange="handleFoodFile(event)" />
+        </label>
+      ` : `
+        <img src="${u.preview}" class="preview-img" />
+        ${!u.analysis ? `
+          <div class="row">
+            <button class="btn btn-block" ${u.busy?'disabled':''} onclick="runFoodAnalysis()">
+              ${u.busy ? '<span class="spin">↻</span> Analiz ediliyor...' : '✨ Besin Değerini Tahmin Et'}
+            </button>
+            <button class="btn btn-outline" style="flex:0 0 auto" onclick="resetFoodPreview()">✕</button>
+          </div>
+        ` : ''}
+      `}
+      ${u.error ? `<div class="error-box">${esc(u.error)}</div>` : ''}
+      ${u.analysis ? `
+        <div style="margin-top:12px;font-weight:600;">${esc(u.analysis.isim)}</div>
+        ${u.analysis.porsiyon_notu ? `<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">${esc(u.analysis.porsiyon_notu)}</div>` : ''}
+        <div class="macro-grid">
+          <div class="macro-item"><div class="macro-val" style="color:var(--accent)">${Math.round(u.analysis.kalori)}</div><div class="macro-label">kcal</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:var(--protein)">${Math.round(u.analysis.protein_g)}g</div><div class="macro-label">protein</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:var(--carb)">${Math.round(u.analysis.karbonhidrat_g)}g</div><div class="macro-label">karbon.</div></div>
+          <div class="macro-item"><div class="macro-val" style="color:var(--fat)">${Math.round(u.analysis.yag_g)}g</div><div class="macro-label">yağ</div></div>
+        </div>
+        ${u.analysis.yorum ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">${esc(u.analysis.yorum)}</div>` : ''}
+        <button class="btn btn-block" onclick="addFoodToLog()">✓ Günlüğe Ekle</button>
+      ` : ''}
+    </div>
+    <div class="card">
+      <p class="card-title">Fotoğrafsız Ekle
+        <button class="btn btn-outline btn-sm" onclick="toggleManual()">${u.manualOpen?'Kapat':'Aç'}</button>
+      </p>
+      ${u.manualOpen ? `
+        <div class="field"><label>Yemek / içecek adı</label>
+          <input id="m_isim" value="${esc(u.manualForm.isim)}" placeholder="örn. Mercimek çorbası" oninput="u_('manualForm.isim', this.value)" />
+        </div>
+        <div class="row">
+          <div class="field"><label>Kalori</label><input id="m_kal" type="number" value="${esc(u.manualForm.kalori)}" oninput="u_('manualForm.kalori', this.value)" /></div>
+          <div class="field"><label>Protein (g)</label><input id="m_prot" type="number" value="${esc(u.manualForm.protein_g)}" oninput="u_('manualForm.protein_g', this.value)" /></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Karbonhidrat (g)</label><input id="m_kb" type="number" value="${esc(u.manualForm.karbonhidrat_g)}" oninput="u_('manualForm.karbonhidrat_g', this.value)" /></div>
+          <div class="field"><label>Yağ (g)</label><input id="m_yag" type="number" value="${esc(u.manualForm.yag_g)}" oninput="u_('manualForm.yag_g', this.value)" /></div>
+        </div>
+        <button class="btn btn-block" onclick="addManualToLog()">+ Ekle</button>
+      ` : ''}
+    </div>
+  `;
+}
+
+function u_(path, val) {
+  const parts = path.split('.');
+  let obj = S.ui;
+  for (let i=0;i<parts.length-1;i++) obj = obj[parts[i]];
+  obj[parts[parts.length-1]] = val;
+}
+
+function toggleManual() { S.ui.manualOpen = !S.ui.manualOpen; render(); }
+
+async function handleFoodFile(evt) {
+  const f = evt.target.files[0];
+  if (!f) return;
+  S.ui.file = f;
+  S.ui.analysis = null;
+  S.ui.error = null;
+  S.ui.preview = URL.createObjectURL(f);
+  render();
+}
+function resetFoodPreview() { S.ui.preview=null; S.ui.file=null; S.ui.analysis=null; render(); }
+
+async function runFoodAnalysis() {
+  if (!S.ui.file) return;
+  if (!S.apiKey) { S.ui.error = 'Önce ayarlardan API anahtarını gir.'; render(); return; }
+  S.ui.busy = true; S.ui.error = null; render();
+  try {
+    const base64 = await fileToBase64(S.ui.file);
+    const mediaType = S.ui.file.type || 'image/jpeg';
+    const result = await callClaude({
+      system: "Sen deneyimli bir diyetisyensin. Sana gönderilen yemek/içecek fotoğrafını analiz edip, gerçekçi bir porsiyon tahminiyle besin değerlerini tahmin ediyorsun. SADECE şu JSON formatında yanıt ver, başka hiçbir metin ekleme: {\"isim\": \"kısa yemek adı (Türkçe)\", \"porsiyon_notu\": \"kısa porsiyon açıklaması\", \"kalori\": sayı, \"protein_g\": sayı, \"karbonhidrat_g\": sayı, \"yag_g\": sayı, \"yorum\": \"1 cümlelik kısa beslenme yorumu, Türkçe\"}",
+      messages: [{ role:'user', content:[
+        { type:'image', source:{ type:'base64', media_type:mediaType, data:base64 } },
+        { type:'text', text:'Bu fotoğraftaki yemeği/içeceği analiz et.' }
+      ]}],
+      wantJson: true,
+    });
+    S.ui.analysis = result;
+  } catch (e) {
+    S.ui.error = 'Analiz yapılamadı: ' + e.message;
+  } finally {
+    S.ui.busy = false; render();
+  }
+}
+
+function addFoodToLog() {
+  const a = S.ui.analysis;
+  addEntry({ type:'meal', title:a.isim, kalori:Number(a.kalori)||0, protein_g:Number(a.protein_g)||0,
+    karbonhidrat_g:Number(a.karbonhidrat_g)||0, yag_g:Number(a.yag_g)||0 });
+  showToast('Günlüğe eklendi');
+  S.ui.analysis=null; S.ui.preview=null; S.ui.file=null;
+  render();
+}
+function addManualToLog() {
+  const f = S.ui.manualForm;
+  if (!f.isim) return;
+  addEntry({ type:'meal', title:f.isim, kalori:Number(f.kalori)||0, protein_g:Number(f.protein_g)||0,
+    karbonhidrat_g:Number(f.karbonhidrat_g)||0, yag_g:Number(f.yag_g)||0 });
+  showToast('Günlüğe eklendi');
+  S.ui.manualForm = { isim:'', kalori:'', protein_g:'', karbonhidrat_g:'', yag_g:'' };
+  S.ui.manualOpen = false;
+  render();
+}
+
+// ---------- ANTRENMAN ----------
+function antrenmanTab() {
+  const u = S.ui;
+  return `
+    <div class="card">
+      <p class="card-title">${S.program ? esc(S.program.program_adi) : 'Program Oluştur'}
+        <button class="btn btn-outline btn-sm" onclick="toggleProgramForm()">${u.programFormOpen ? 'Kapat' : (S.program ? 'Yeniden Oluştur' : 'Aç')}</button>
+      </p>
+      ${u.programFormOpen ? `
+        <div class="field"><label>Hedef</label>
+          <select onchange="u_('programForm.hedef', this.value)">
+            ${['Kas kazanma','Yağ yakma / kilo verme','Genel fitness / dayanıklılık','Güç artırma'].map(o=>`<option ${u.programForm.hedef===o?'selected':''}>${o}</option>`).join('')}
+          </select>
+        </div>
+        <div class="row">
+          <div class="field"><label>Haftalık gün sayısı</label>
+            <select onchange="u_('programForm.gun', this.value)">
+              ${[2,3,4,5,6].map(n=>`<option value="${n}" ${u.programForm.gun==String(n)?'selected':''}>${n} gün</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Seviye</label>
+            <select onchange="u_('programForm.seviye', this.value)">
+              ${['Başlangıç','Orta','İleri'].map(o=>`<option ${u.programForm.seviye===o?'selected':''}>${o}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="field"><label>Ekipman</label>
+          <select onchange="u_('programForm.ekipman', this.value)">
+            ${['Salon (tam ekipman)','Ev (dambıl + bant)','Sadece vücut ağırlığı'].map(o=>`<option ${u.programForm.ekipman===o?'selected':''}>${o}</option>`).join('')}
+          </select>
+        </div>
+        ${u.programError ? `<div class="error-box">${esc(u.programError)}</div>` : ''}
+        <button class="btn btn-block" ${u.programBusy?'disabled':''} onclick="generateProgram()">
+          ${u.programBusy ? '<span class="spin">↻</span> Hazırlanıyor...' : '✨ AI ile Program Oluştur'}
+        </button>
+      ` : ''}
+    </div>
+    ${S.program && !u.programFormOpen ? S.program.gunler.map((g,i) => `
+      <div class="card day-card">
+        <div class="day-head">
+          <div><div class="day-name">${esc(g.gun)}</div><div class="day-focus">${esc(g.odak)}</div></div>
+          <button class="btn btn-outline btn-sm" onclick="completeDay(${i})">✓ Tamamlandı</button>
+        </div>
+        ${g.egzersizler.map(ex => `
+          <div class="ex-row"><span>${esc(ex.isim)}</span><span class="ex-sets">${esc(ex.set)}×${esc(ex.tekrar)}</span></div>
+        `).join('')}
+      </div>
+    `).join('') : ''}
+  `;
+}
+function toggleProgramForm() { S.ui.programFormOpen = !S.ui.programFormOpen; render(); }
+
+async function generateProgram() {
+  if (!S.apiKey) { S.ui.programError = 'Önce ayarlardan API anahtarını gir.'; render(); return; }
+  const f = S.ui.programForm;
+  S.ui.programBusy = true; S.ui.programError = null; render();
+  try {
+    const result = await callClaude({
+      system: "Sen deneyimli bir kişisel antrenörsün. Kullanıcının hedefine, ekipman durumuna ve seviyesine göre haftalık antrenman programı hazırlıyorsun. SADECE şu JSON formatında yanıt ver, başka metin ekleme: {\"program_adi\": \"kısa isim\", \"gunler\": [{\"gun\": \"Pazartesi\", \"odak\": \"kısa odak açıklaması\", \"egzersizler\": [{\"isim\": \"egzersiz adı\", \"set\": sayı, \"tekrar\": \"örn. 8-10\", \"not\": \"kısa teknik notu\"}]}]}. Her antrenman gününde 4-6 egzersiz olsun, dinlenme günlerini listeye ekleme.",
+      messages: [{ role:'user', content: `Hedefim: ${f.hedef}. Haftada ${f.gun} gün antrenman yapabiliyorum. Ekipman: ${f.ekipman}. Seviyem: ${f.seviye}. Bana uygun bir program hazırla.` }],
+      wantJson: true,
+    });
+    S.program = result;
+    lsSetJSON('pt_program', result);
+    S.ui.programFormOpen = false;
+    showToast('Program oluşturuldu');
+  } catch (e) {
+    S.ui.programError = 'Program oluşturulamadı: ' + e.message;
+  } finally {
+    S.ui.programBusy = false; render();
+  }
+}
+
+function completeDay(i) {
+  const g = S.program.gunler[i];
+  addEntry({ type:'workout', title:`${g.gun}: ${g.odak}`, sub:`${g.egzersizler.length} egzersiz tamamlandı` });
+  showToast('Antrenman günlüğe eklendi');
+  render();
+}
+
+// ---------- KOÇ ----------
+function kocTab() {
+  const u = S.ui;
+  return `
+    <div id="chatMsgs" class="chat-msgs" style="max-height:calc(100vh - 320px); overflow-y:auto;">
+      ${S.chat.length===0 ? `<div class="empty">Hedeflerini, sorularını ya da bugün yaşadığın bir zorluğu yazabilirsin.</div>` : ''}
+      ${S.chat.map(m => `<div class="bubble ${m.role}">${esc(m.content)}</div>`).join('')}
+      ${u.chatBusy ? `<div class="bubble assistant"><span class="spin">↻</span></div>` : ''}
+    </div>
+    ${u.chatError ? `<div class="error-box">${esc(u.chatError)}</div>` : ''}
+    <div class="chat-input-row">
+      <textarea id="chatInputBox" placeholder="Koçuna bir şey sor..." oninput="u_('chatInput', this.value)" onkeydown="chatKeyDown(event)">${esc(u.chatInput)}</textarea>
+      <button class="btn" ${u.chatBusy?'disabled':''} onclick="sendChat()">➤</button>
+    </div>
+  `;
+}
+
+function chatKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  const text = (S.ui.chatInput || '').trim();
+  if (!text || S.ui.chatBusy) return;
+  if (!S.apiKey) { S.ui.chatError = 'Önce ayarlardan API anahtarını gir.'; render(); return; }
+  S.ui.chatInput = '';
+  S.ui.chatError = null;
+  S.chat = [...S.chat, { role:'user', content:text }];
+  lsSetJSON('pt_chat', S.chat);
+  S.ui.chatBusy = true;
+  render();
+  try {
+    const reply = await callClaude({
+      system: "Sen sıcak, samimi ama net konuşan bir kişisel antrenör ve diyetisyensin. Türkçe, sade ve pratik cevaplar veriyorsun. Uzun teorik anlatımlardan kaçın, somut ve uygulanabilir tavsiyeler ver.",
+      messages: S.chat.slice(-12).map(m => ({ role:m.role, content:m.content })),
+    });
+    S.chat = [...S.chat, { role:'assistant', content:reply }];
+    lsSetJSON('pt_chat', S.chat);
+  } catch (e) {
+    S.ui.chatError = 'Yanıt alınamadı: ' + e.message;
+  } finally {
+    S.ui.chatBusy = false; render();
+  }
+}
+
+function bindEvents() {}
+
+// ---------- başlat ----------
+if (!S.apiKey) S.showSettings = true;
+render();
+</script>
+</body>
+</html>
